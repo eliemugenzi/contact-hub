@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CreateContactDTO } from './dto/create-contact.dto';
+import { Contact } from '@prisma/client';
+import { isEmpty } from 'lodash';
+import async from 'async';
 
 @Injectable()
 export class ContactService {
@@ -51,7 +54,20 @@ export class ContactService {
       },
     });
 
-    return foundContacts;
+    const mappedContacts = await async.mapSeries(
+      foundContacts,
+      async (contact: any) => {
+        const duplicates = await this.getDuplicates(contact);
+
+        if (!isEmpty(duplicates)) {
+          contact.duplicates = duplicates;
+        }
+
+        return contact;
+      },
+    );
+
+    return mappedContacts;
   }
 
   async getOneContact(contactId: string, userId: string) {
@@ -82,5 +98,52 @@ export class ContactService {
     }
 
     return foundContact;
+  }
+
+  async getDuplicates(contact: Contact) {
+    const foundSimilarContacts = await this.db.contact.findMany({
+      where: {
+        NOT: {
+          id: contact.id,
+        },
+        OR: [
+          {
+            first_name: {
+              contains: contact.first_name,
+            },
+          },
+          {
+            last_name: {
+              contains: contact.last_name,
+            },
+          },
+          {
+            first_name: {
+              contains: contact.last_name,
+            },
+          },
+          {
+            last_name: {
+              contains: contact.first_name,
+            },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        first_name: true,
+        last_name: true,
+        created_at: true,
+        preferences: {
+          select: {
+            type: true,
+            value: true,
+            created_at: true,
+          },
+        },
+      },
+    });
+
+    return foundSimilarContacts;
   }
 }

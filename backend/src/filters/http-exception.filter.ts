@@ -17,8 +17,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
-    const status = exception?.getStatus() || HttpStatus.INTERNAL_SERVER_ERROR;
+    console.log('EXCEPTION___', exception);
 
+    const status = exception?.getStatus() || HttpStatus.INTERNAL_SERVER_ERROR;
     let message = exception.message;
 
     if (status === HttpStatus.BAD_REQUEST) {

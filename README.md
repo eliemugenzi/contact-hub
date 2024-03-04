@@ -354,3 +354,164 @@
     "timestamp": "2024-03-04T18:41:08.019Z"
 }
 ```
+
+#### Get a single contact with its details
+
+- Endpoint: `/contacts<contactId>`
+- Request Method: `GET`
+- Authorization: `Bearer Token`
+- Response object
+
+```json
+{
+    "status": 200,
+    "data": {
+        "id": "04aa3276-0679-4d3b-a7c3-f6ed8386d28a",
+        "first_name": "Elie",
+        "last_name": "MUGENZI",
+        "created_at": "2024-03-03T14:08:06.438Z",
+        "preferences": [
+            {
+                "id": "d5a3201c-a98d-4337-bb76-de80ea609480",
+                "type": "PHONE",
+                "value": "+250785844487",
+                "created_at": "2024-03-04T04:38:14.963Z"
+            },
+            {
+                "id": "751d040b-49b8-43e5-bb7c-5d106f68dbe9",
+                "type": "EMAIL",
+                "value": "e.mugenzi@gov.uk",
+                "created_at": "2024-03-04T04:38:14.963Z"
+            }
+        ]
+    },
+    "timestamp": "2024-03-04T06:59:11.714Z"
+}
+```
+
+#### Merge two similar contacts
+
+- Endpoint: `/contacts/<contactId>/merge/<similarContactId>`
+- Request Method: `PUT`
+- Authorization: `Bearer Token`
+- Response object:
+```json
+{
+    "status": 200,
+    "message": "Contacts have been merged",
+    "data": {
+        "id": "04aa3276-0679-4d3b-a7c3-f6ed8386d28a",
+        "first_name": "Elie",
+        "last_name": "MUGENZI",
+        "created_at": "2024-03-03T14:08:06.438Z",
+        "preferences": [
+            {
+                "type": "PHONE",
+                "value": "+250785844487",
+                "created_at": "2024-03-04T04:38:14.963Z"
+            },
+            {
+                "type": "EMAIL",
+                "value": "e.mugenzi@gov.uk",
+                "created_at": "2024-03-04T04:38:14.963Z"
+            }
+        ]
+    },
+    "timestamp": "2024-03-04T04:38:14.966Z"
+}
+```
+
+#### Delete a single contact preference(email, phone)
+
+- Endpoint: `/contacts/<contactId>/preferences/<preferenceId>`
+- Request Method: `DELETE`
+- Authorization: `Bearer Token`
+- Response object
+
+```json
+{
+    "status": 200,
+    "message": "Preference successfully deleted",
+    "data": {
+        "id": "04aa3276-0679-4d3b-a7c3-f6ed8386d28a",
+        "first_name": "Elie",
+        "last_name": "MUGENZI",
+        "created_at": "2024-03-03T14:08:06.438Z",
+        "preferences": [
+            {
+                "id": "d6ca767d-9dc6-421b-a174-50e6afc8d028",
+                "type": "PHONE",
+                "value": "+250785844487",
+                "created_at": "2024-03-04T04:24:21.707Z"
+            }
+        ]
+    },
+    "timestamp": "2024-03-04T04:26:18.298Z"
+}
+```
+
+#### Update contact
+
+- Endpoint: `/contacts/<contactId>`
+- Request Method: `PUT`
+- Authorization: `Bearer Token`
+- Request Payload
+```json
+{
+    "first_name": "Patrick",
+    "preferences": [
+        {
+            "type": "EMAIL",
+            "value": "p.david@goat.com"
+        }
+    ]
+}
+```
+- Response object
+```json
+{
+    "status": 200,
+    "message": "The contact has been updated successfully!",
+    "data": {
+        "id": "a72a2477-5f2d-4e16-a129-d8679f90ef82",
+        "first_name": "Patrick",
+        "last_name": "Siebel",
+        "created_at": "2024-03-04T04:31:39.372Z",
+        "preferences": [
+            {
+                "id": "fcd2225e-43df-4c9e-9da7-ca940a1b7e26",
+                "type": "EMAIL",
+                "value": "e.mugenzi@gov.uk",
+                "created_at": "2024-03-04T05:22:05.102Z"
+            },
+            {
+                "id": "f945c0e4-21a7-4a9a-a4c6-fcaf93bb0745",
+                "type": "PHONE",
+                "value": "+250785844487",
+                "created_at": "2024-03-04T05:22:05.102Z"
+            },
+            {
+                "id": "56e10b1c-7d9b-4380-a9d2-c6aca1d7ac22",
+                "type": "EMAIL",
+                "value": "p.david@goat.com",
+                "created_at": "2024-03-04T05:22:05.102Z"
+            }
+        ]
+    },
+    "timestamp": "2024-03-04T05:22:05.112Z"
+}
+```
+
+#### Delete a contact
+
+- Endpoint: `/contacts/<contactId>`
+- Request Method: `DELETE`
+- Authorization: `Bearer Token`
+- Response object
+```json
+{
+    "status": 200,
+    "message": "Contact has been successfully deleted!",
+    "timestamp": "2024-03-04T05:35:14.861Z"
+}
+```

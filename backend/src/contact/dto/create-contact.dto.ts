@@ -16,6 +16,7 @@ export class CreateContactDTO {
 }
 
 export class ContactPreferenceDTO {
+  @IsNotEmpty()
   @IsEnum(ContactPreferenceType)
   type: ContactPreferenceType;
 

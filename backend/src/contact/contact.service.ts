@@ -4,6 +4,7 @@ import { CreateContactDTO } from './dto/create-contact.dto';
 import { Contact, ContactPreference } from '@prisma/client';
 import { isEmpty } from 'lodash';
 import async from 'async';
+import { UpdateContactDTO } from './dto/update-contact.dto';
 
 @Injectable()
 export class ContactService {
@@ -34,11 +35,27 @@ export class ContactService {
     };
   }
 
-  async getMyContacts(userId: string) {
+  async getMyContacts(userId: string, search = '') {
     const foundContacts = await this.db.contact.findMany({
       where: {
         user_id: userId,
         status: 'ACTIVE',
+        OR: !isEmpty(search)
+          ? [
+              {
+                first_name: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                last_name: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+            ]
+          : undefined,
       },
       select: {
         id: true,
@@ -115,21 +132,25 @@ export class ContactService {
           {
             first_name: {
               contains: contact.first_name,
+              mode: 'insensitive',
             },
           },
           {
             last_name: {
               contains: contact.last_name,
+              mode: 'insensitive',
             },
           },
           {
             first_name: {
               contains: contact.last_name,
+              mode: 'insensitive',
             },
           },
           {
             last_name: {
               contains: contact.first_name,
+              mode: 'insensitive',
             },
           },
         ],
@@ -299,5 +320,98 @@ export class ContactService {
     const freshContact = await this.getOneContact(contactId, userId);
 
     return freshContact;
+  }
+
+  async updateContact(
+    contactId: string,
+    userId: string,
+    body: UpdateContactDTO,
+  ) {
+    const contact = await this.db.contact.findFirst({
+      where: {
+        id: contactId,
+        user_id: userId,
+      },
+      select: {
+        id: true,
+        preferences: true,
+      },
+    });
+
+    if (!contact) {
+      throw new NotFoundException(
+        'The contact you are trying to update does not exist!',
+      );
+    }
+
+    const { preferences, ...rest } = body;
+
+    if (!isEmpty(rest)) {
+      await this.db.contact.update({
+        where: {
+          id: contactId,
+        },
+        data: {
+          ...rest,
+        },
+      });
+    }
+
+    if (!isEmpty(preferences)) {
+      const mergedPreferences = await this.mergeContactPreferences(
+        contact.preferences,
+        preferences as any,
+      );
+
+      const mappedPreferences = mergedPreferences.map((preference) => ({
+        type: preference.type,
+        value: preference.value,
+        contact_id: contact.id,
+      }));
+
+      await this.db.contactPreference.deleteMany({
+        where: {
+          contact_id: contactId,
+        },
+      });
+      await this.db.contactPreference.createMany({
+        data: mappedPreferences,
+      });
+    }
+
+    const finalContact = await this.getOneContact(contactId, userId);
+    return finalContact;
+  }
+
+  async deleteContact(contactId: string, userId: string) {
+    const contact = await this.db.contact.findFirst({
+      where: {
+        id: contactId,
+        user_id: userId,
+      },
+    });
+
+    if (!contact) {
+      throw new NotFoundException(
+        'The contact you are trying to delete does not exist',
+      );
+    }
+
+    // Clear all the contact preferences
+    await this.db.contactPreference.deleteMany({
+      where: {
+        contact_id: contact.id,
+      },
+    });
+
+    // DELETE i.e Deactivate
+    await this.db.contact.update({
+      where: {
+        id: contactId,
+      },
+      data: {
+        status: 'INACTIVE',
+      },
+    });
   }
 }

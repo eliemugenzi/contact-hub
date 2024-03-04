@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Post,
   Put,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -16,6 +17,7 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { CreateContactDTO } from './dto/create-contact.dto';
 import httpResponse, { HttpResponse } from 'src/utils/helpers/httpResponse';
 import { Request } from 'express';
+import { UpdateContactDTO } from './dto/update-contact.dto';
 
 @Controller('contacts')
 export class ContactController {
@@ -39,9 +41,12 @@ export class ContactController {
 
   @Get('/')
   @UseGuards(AuthGuard)
-  async getMyContacts(@Req() req: Request): Promise<HttpResponse> {
+  async getMyContacts(
+    @Req() req: Request,
+    @Query('search') search: string,
+  ): Promise<HttpResponse> {
     const user = req['user'];
-    const result = await this.contactService.getMyContacts(user?.id);
+    const result = await this.contactService.getMyContacts(user?.id, search);
 
     return httpResponse({
       status: HttpStatus.OK,
@@ -62,6 +67,37 @@ export class ContactController {
     return httpResponse({
       status: HttpStatus.OK,
       data: result,
+    });
+  }
+
+  @Put('/:id')
+  @UseGuards(AuthGuard)
+  async updateContact(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() data: UpdateContactDTO,
+    @Req() req: Request,
+  ): Promise<HttpResponse> {
+    const user = req['user'];
+    const result = await this.contactService.updateContact(id, user?.id, data);
+    return httpResponse({
+      status: HttpStatus.OK,
+      message: 'The contact has been updated successfully!',
+      data: result,
+    });
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  async deleteContact(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: Request,
+  ): Promise<HttpResponse> {
+    const user = req['user'];
+    await this.contactService.deleteContact(id, user?.id);
+
+    return httpResponse({
+      status: HttpStatus.OK,
+      message: 'Contact has been successfully deleted!',
     });
   }
 

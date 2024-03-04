@@ -2,8 +2,8 @@ import { HttpStatus } from '@nestjs/common';
 
 export interface HttpResponse {
   status: HttpStatus;
-  data?: any;
   message?: string;
+  data?: any;
   meta?: {
     total: number;
     page: number;
@@ -14,13 +14,13 @@ export interface HttpResponse {
 
 interface IResponseData {
   status: HttpStatus;
+  message?: string;
   data?: any;
   meta?: {
     total: number;
     page: number;
     pages: number;
   };
-  message?: string;
 }
 
 const httpResponse = (data: IResponseData): HttpResponse => ({

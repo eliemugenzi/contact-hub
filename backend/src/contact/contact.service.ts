@@ -254,20 +254,16 @@ export class ContactService {
     duplicatePreferences: ContactPreference[],
   ): Promise<ContactPreference[]> {
     const newPreferences = [...basePreferences, ...duplicatePreferences];
-
-    const cleanPref = [];
-
+    const uniquePreferences = [];
     const seen = {};
-
-    for (let i = 0; i < newPreferences.length; i++) {
-      const objString = newPreferences[i].value;
-
-      if (!seen[objString]) {
-        cleanPref.push(newPreferences[i]);
-        seen[objString] = true;
+    newPreferences.forEach((preference) => {
+      const objectKey = preference.value;
+      if (!seen[objectKey]) {
+        uniquePreferences.push(preference);
+        seen[objectKey] = true;
       }
-    }
-    return cleanPref;
+    });
+    return uniquePreferences;
   }
 
   async deletePreference(

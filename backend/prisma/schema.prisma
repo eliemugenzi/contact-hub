@@ -27,6 +27,7 @@ model Contact {
   first_name String
   last_name  String
   user_id    String   @db.Uuid
+  status ContactStatus @default(value: ACTIVE)
   user       User     @relation(fields: [user_id], references: [id])
   preferences ContactPreference[]
   created_at DateTime @default(now())
@@ -48,4 +49,9 @@ model ContactPreference {
 enum ContactPreferenceType {
   EMAIL
   PHONE
+}
+
+enum ContactStatus {
+  ACTIVE
+  INACTIVE
 }

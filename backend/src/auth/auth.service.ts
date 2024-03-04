@@ -45,7 +45,6 @@ export class AuthService {
   }
 
   async login(body: LoginDTO) {
-    console.log('WHATS UP___', body);
     const foundUser = await this.db.user.findFirst({
       where: {
         email: body.email,

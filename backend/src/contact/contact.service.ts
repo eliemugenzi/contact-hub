@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CreateContactDTO } from './dto/create-contact.dto';
-import { Contact } from '@prisma/client';
+import { Contact, ContactPreference } from '@prisma/client';
 import { isEmpty } from 'lodash';
 import async from 'async';
 
@@ -38,6 +38,7 @@ export class ContactService {
     const foundContacts = await this.db.contact.findMany({
       where: {
         user_id: userId,
+        status: 'ACTIVE',
       },
       select: {
         id: true,
@@ -46,6 +47,7 @@ export class ContactService {
         created_at: true,
         preferences: {
           select: {
+            id: true,
             type: true,
             value: true,
             created_at: true,
@@ -57,7 +59,7 @@ export class ContactService {
     const mappedContacts = await async.mapSeries(
       foundContacts,
       async (contact: any) => {
-        const duplicates = await this.getDuplicates(contact);
+        const duplicates = await this.getDuplicates(contact, userId);
 
         if (!isEmpty(duplicates)) {
           contact.duplicates = duplicates;
@@ -83,6 +85,7 @@ export class ContactService {
         created_at: true,
         preferences: {
           select: {
+            id: true,
             type: true,
             value: true,
             created_at: true,
@@ -100,9 +103,11 @@ export class ContactService {
     return foundContact;
   }
 
-  async getDuplicates(contact: Contact) {
+  async getDuplicates(contact: Contact, userId: string) {
     const foundSimilarContacts = await this.db.contact.findMany({
       where: {
+        user_id: userId,
+        status: 'ACTIVE',
         NOT: {
           id: contact.id,
         },
@@ -145,5 +150,158 @@ export class ContactService {
     });
 
     return foundSimilarContacts;
+  }
+
+  async mergeContacts(
+    mainContactId: string,
+    duplicateContactId: string,
+    userId: string,
+  ) {
+    const baseContact = await this.db.contact.findFirst({
+      where: {
+        id: mainContactId,
+        user_id: userId,
+      },
+    });
+
+    if (!baseContact) {
+      throw new NotFoundException('No base contact found');
+    }
+
+    const duplicateContacts = await this.getDuplicates(baseContact, userId);
+
+    const foundDuplicate = duplicateContacts.find(
+      (contact) => contact.id === duplicateContactId,
+    );
+
+    if (!foundDuplicate) {
+      throw new NotFoundException('No duplicate contact found');
+    }
+
+    const duplicatePreferences = await this.db.contactPreference.findMany({
+      where: {
+        contact_id: foundDuplicate.id,
+      },
+    });
+
+    const basePreferences = await this.db.contactPreference.findMany({
+      where: {
+        contact_id: baseContact.id,
+      },
+    });
+
+    const newContactPreferences = await this.mergeContactPreferences(
+      basePreferences as ContactPreference[],
+      duplicatePreferences as ContactPreference[],
+    );
+
+    await this.db.contactPreference.deleteMany({
+      where: {
+        OR: [
+          {
+            contact_id: foundDuplicate.id,
+          },
+          {
+            contact_id: baseContact.id,
+          },
+        ],
+      },
+    });
+
+    await this.db.contact.update({
+      where: {
+        id: foundDuplicate.id,
+      },
+      data: {
+        status: 'INACTIVE',
+      },
+    });
+
+    const mappedPreferences = newContactPreferences.map((preference) => ({
+      type: preference.type,
+      value: preference.value,
+      contact_id: baseContact.id,
+    }));
+
+    await this.db.contactPreference.createMany({
+      data: mappedPreferences,
+    });
+
+    const newContact = await this.db.contact.findFirst({
+      where: {
+        id: baseContact.id,
+      },
+      select: {
+        id: true,
+        first_name: true,
+        last_name: true,
+        created_at: true,
+        preferences: {
+          select: {
+            type: true,
+            value: true,
+            created_at: true,
+          },
+        },
+      },
+    });
+
+    return newContact;
+  }
+
+  async mergeContactPreferences(
+    basePreferences: ContactPreference[],
+    duplicatePreferences: ContactPreference[],
+  ): Promise<ContactPreference[]> {
+    const newPreferences = [...basePreferences, ...duplicatePreferences];
+
+    const cleanPref = [];
+
+    const seen = {};
+
+    for (let i = 0; i < newPreferences.length; i++) {
+      const objString = newPreferences[i].value;
+
+      if (!seen[objString]) {
+        cleanPref.push(newPreferences[i]);
+        seen[objString] = true;
+      }
+    }
+    return cleanPref;
+  }
+
+  async deletePreference(
+    contactId: string,
+    preferenceId: string,
+    userId: string,
+  ) {
+    const foundContact = await this.db.contact.findFirst({
+      where: {
+        id: contactId,
+        user_id: userId,
+      },
+      select: {
+        id: true,
+        preferences: {
+          where: {
+            id: preferenceId,
+          },
+        },
+      },
+    });
+
+    if (isEmpty(foundContact.preferences)) {
+      throw new NotFoundException('Preference not found');
+    }
+
+    await this.db.contactPreference.delete({
+      where: {
+        id: preferenceId,
+      },
+    });
+
+    const freshContact = await this.getOneContact(contactId, userId);
+
+    return freshContact;
   }
 }

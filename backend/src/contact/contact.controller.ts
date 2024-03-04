@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -59,6 +61,49 @@ export class ContactController {
 
     return httpResponse({
       status: HttpStatus.OK,
+      data: result,
+    });
+  }
+
+  @Put('/:id/merge/:duplicateContactId')
+  @UseGuards(AuthGuard)
+  async mergeContacts(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('duplicateContactId', new ParseUUIDPipe())
+    duplicateContactId: string,
+    @Req() req: Request,
+  ): Promise<HttpResponse> {
+    const user = req['user'];
+    const result = await this.contactService.mergeContacts(
+      id,
+      duplicateContactId,
+      user?.id,
+    );
+
+    return httpResponse({
+      status: HttpStatus.OK,
+      message: 'Contacts have been merged',
+      data: result,
+    });
+  }
+
+  @Delete('/:id/preferences/:preferenceId')
+  @UseGuards(AuthGuard)
+  async deletePreference(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('preferenceId', new ParseUUIDPipe()) preferenceId: string,
+    @Req() req: Request,
+  ): Promise<HttpResponse> {
+    const user = req['user'];
+    const result = await this.contactService.deletePreference(
+      id,
+      preferenceId,
+      user?.id,
+    );
+
+    return httpResponse({
+      status: HttpStatus.OK,
+      message: 'Successfully deleted',
       data: result,
     });
   }

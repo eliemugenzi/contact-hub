@@ -3,6 +3,7 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
@@ -13,10 +14,12 @@ export const getErrorMessage = <T>(exception: T): string => {
 };
 
 export class HttpExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(HttpExceptionFilter.name);
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
+    this.logger.error(exception);
     const status = exception?.getStatus() || HttpStatus.INTERNAL_SERVER_ERROR;
     let message = exception.message;
 

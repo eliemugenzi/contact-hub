@@ -5,6 +5,7 @@ import { Contact, ContactPreference } from '@prisma/client';
 import { isEmpty } from 'lodash';
 import async from 'async';
 import { UpdateContactDTO } from './dto/update-contact.dto';
+import { DeleteContactsDTO } from './dto/delete-contacts.dto';
 
 @Injectable()
 export class ContactService {
@@ -413,5 +414,41 @@ export class ContactService {
         status: 'INACTIVE',
       },
     });
+  }
+
+  async bulkDeleteContacts(userId: string, data: DeleteContactsDTO) {
+    const foundContacts = await this.db.contact.findMany({
+      where: {
+        id: {
+          in: data.contact_ids,
+        },
+        user_id: userId,
+      },
+    });
+
+    if (foundContacts.length === 0) {
+      throw new NotFoundException(
+        'The contacts you are trying to delete are not found!',
+      );
+    }
+
+    const result = await this.db.contactPreference.deleteMany({
+      where: {
+        contact_id: {
+          in: data.contact_ids,
+        },
+      },
+    });
+
+    if (result.count > 0) {
+      await this.db.contact.deleteMany({
+        where: {
+          id: {
+            in: data.contact_ids,
+          },
+          user_id: userId,
+        },
+      });
+    }
   }
 }

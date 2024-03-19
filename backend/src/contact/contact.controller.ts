@@ -18,6 +18,7 @@ import { CreateContactDTO } from './dto/create-contact.dto';
 import httpResponse, { HttpResponse } from 'src/utils/helpers/httpResponse';
 import { Request } from 'express';
 import { UpdateContactDTO } from './dto/update-contact.dto';
+import { DeleteContactsDTO } from './dto/delete-contacts.dto';
 
 @Controller('contacts')
 export class ContactController {
@@ -51,6 +52,19 @@ export class ContactController {
     return httpResponse({
       status: HttpStatus.OK,
       data: result,
+    });
+  }
+
+  @Delete('/bulk')
+  @UseGuards(AuthGuard)
+  async bulkDelete(@Body() body: DeleteContactsDTO, @Req() req: Request) {
+    // TODO: A service to delete contacts
+    const currentUser = req['user'];
+    await this.contactService.bulkDeleteContacts(currentUser?.id, body);
+
+    return httpResponse({
+      status: HttpStatus.OK,
+      message: 'Contacts have been deleted',
     });
   }
 
